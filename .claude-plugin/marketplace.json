@@ -1,0 +1,17 @@
+{
+  "name": "arkdev-tools",
+  "owner": {
+    "name": "ArkDev",
+    "url": "https://arkdev.net"
+  },
+  "plugins": [
+    {
+      "name": "speckit-lean",
+      "source": "./plugins/speckit-lean",
+      "description": "Cut Spec Kit token cost: tiered agents, phase-sized runs, context and wait guards, usage report."
+    }
+  ],
+  "metadata": {
+    "description": "ArkDev Claude Code plugins."
+  }
+}

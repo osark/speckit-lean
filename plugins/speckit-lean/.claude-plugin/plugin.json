@@ -1,0 +1,32 @@
+{
+  "name": "speckit-lean",
+  "displayName": "Spec Kit Lean",
+  "version": "0.1.0",
+  "description": "Cut Spec Kit token cost: tiered agents, phase-sized runs, context and wait guards, and a usage report.",
+  "author": { "name": "Rafik E. Younan", "email": "rafik.younan@arkdev.net", "url": "https://arkdev.net" },
+  "license": "MIT",
+  "keywords": ["spec-kit", "tokens", "subagents", "quota", "cost"],
+  "userConfig": {
+    "coordinator_ceiling": {
+      "type": "number",
+      "title": "Coordinator context ceiling (tokens)",
+      "description": "Warn the main session when its context passes this size. Default 120000.",
+      "default": 120000,
+      "min": 20000
+    },
+    "subagent_ceiling": {
+      "type": "number",
+      "title": "Subagent context ceiling (tokens)",
+      "description": "Tell a subagent to checkpoint and end when its context passes this size. Default 150000.",
+      "default": 150000,
+      "min": 20000
+    },
+    "wait_guard": {
+      "type": "string",
+      "title": "Wait guard",
+      "description": "deny: block polling loops (until/while with sleep) in subagents. off: do not block.",
+      "options": ["deny", "off"],
+      "default": "deny"
+    }
+  }
+}

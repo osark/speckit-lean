@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Report token use per agent for one Claude Code session.
+
+Usage: speckit-usage.py <session.jsonl | session-id> [--project-dir DIR]
+Shows turns, models, peak context, cache writes and reads, and cache rewrites
+above 150K tokens (a sign of idle waits longer than the 5-minute cache life).
+"""
+import argparse, glob, json, os, sys
+
+SPIKE = 150_000
+# Input price per million tokens. Cache write 1.25x (5m) or 2x (1h), read 0.1x, output 5x.
+PRICE = {"sonnet": 2.0, "opus": 4.0, "haiku": 1.0, "fable": 10.0}
+
+def base_price(model):
+    for k, v in PRICE.items():
+        if k in (model or ""):
+            return v
+    return 2.0
+
+def agent_rows(path):
+    seen, rows = set(), []
+    for line in open(path):
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        m = d.get("message")
+        if not isinstance(m, dict) or m.get("role") != "assistant" or not m.get("usage"):
+            continue
+        if m.get("id") in seen or m.get("model") == "<synthetic>":
+            continue
+        seen.add(m.get("id"))
+        u = m["usage"]
+        h1 = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens", 0)
+        rows.append((d.get("timestamp", ""), m.get("model"), u.get("input_tokens", 0),
+                     u.get("cache_creation_input_tokens", 0),
+                     u.get("cache_read_input_tokens", 0), u.get("output_tokens", 0), h1))
+    return rows
+
+def cost(rows):
+    """Rough API-equivalent cost in dollars."""
+    total = 0.0
+    for r in rows:
+        b = base_price(r[1])
+        total += (r[2] * b + r[5] * b * 5 + r[6] * 2 * b + (r[3] - r[6]) * 1.25 * b + r[4] * 0.1 * b) / 1e6
+    return total
+
+def label(path):
+    meta = path[:-6] + ".meta.json"
+    try:
+        return json.load(open(meta)).get("description", "")[:40]
+    except (OSError, ValueError):
+        return "(main session)"
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("session")
+    ap.add_argument("--project-dir", default=os.getcwd())
+    a = ap.parse_args()
+    main_path = a.session
+    if not os.path.isfile(main_path):
+        slug = a.project_dir.replace("/", "-")
+        main_path = os.path.expanduser(f"~/.claude/projects/{slug}/{a.session}.jsonl")
+    sub = sorted(glob.glob(main_path[:-6] + "/subagents/*.jsonl"))
+    print(f"{'agent':42} {'turns':>5} {'peak ctx':>9} {'writes':>9} {'reads':>10} {'spikes':>6} {'est $':>7}  models")
+    tot_w = tot_r = 0; tot_c = 0.0
+    for p in [main_path] + sub:
+        r = agent_rows(p)
+        if not r:
+            continue
+        w = sum(x[3] for x in r); rd = sum(x[4] for x in r)
+        peak = max(x[2] + x[3] + x[4] for x in r)
+        spikes = sum(1 for x in r if x[3] > SPIKE)
+        c = cost(r); tot_w += w; tot_r += rd; tot_c += c
+        print(f"{label(p):42} {len(r):>5} {peak:>9,} {w:>9,} {rd:>10,} {spikes:>6} {c:>7.2f}  {','.join(sorted({x[1] for x in r}))}")
+    print(f"{'TOTAL':42} {'':>5} {'':>9} {tot_w:>9,} {tot_r:>10,} {'':>6} {tot_c:>7.2f}")
+
+main()
