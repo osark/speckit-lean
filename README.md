@@ -19,14 +19,54 @@ Built from measured data on two real specs. Read [`why.md`](plugins/speckit-lean
 
 ## Install
 
-```bash
-claude plugin marketplace add /home/rafik/ArkDev/projects/speckit-lean
-claude plugin install speckit-lean@arkdev-tools
-```
+The repository is public. Each team member installs the plugin from GitHub.
 
-Then, in a session, run `/speckit-lean:setup`. A plugin cannot set `subagentPromptCacheTtl`, so the setup skill does it for you after you confirm.
+1. Add the marketplace:
+
+   ```bash
+   claude plugin marketplace add osark/speckit-lean
+   ```
+
+2. Install the plugin:
+
+   ```bash
+   claude plugin install speckit-lean@arkdev-tools
+   ```
+
+3. Restart Claude Code.
+4. In a session, run `/speckit-lean:setup`. A plugin cannot set `subagentPromptCacheTtl`, so the setup skill does it for you after you confirm.
 
 If you also have user-level agents named `speckit-*` in `~/.claude/agents/`, delete them after you install the plugin. The plugin agents replace them under the names `speckit-lean:<agent>`.
+
+To test a local copy, add the marketplace from the path of your clone. For example: `claude plugin marketplace add ./speckit-lean`.
+
+## Share with a team
+
+Option 1: Send the install steps above to each team member.
+
+Option 2: Add the marketplace to a project, so Claude Code offers the plugin to everyone who opens it. Put this in the `.claude/settings.json` file of the project and commit the file:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "arkdev-tools": { "source": { "source": "github", "repo": "osark/speckit-lean" } }
+  },
+  "enabledPlugins": { "speckit-lean@arkdev-tools": true }
+}
+```
+
+Each team member must trust the project folder. Each team member must still run `/speckit-lean:setup`, because the setting is per user.
+
+## Update
+
+Team members get changes from the `master` branch on GitHub. Run these commands to update:
+
+```bash
+claude plugin marketplace update arkdev-tools
+claude plugin update speckit-lean@arkdev-tools
+```
+
+Before you publish a change, push your commits to `origin`. Increase the `version` in `plugins/speckit-lean/.claude-plugin/plugin.json`, so that Claude Code detects the update.
 
 ## Settings
 
